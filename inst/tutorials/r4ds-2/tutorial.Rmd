@@ -85,7 +85,7 @@ basketball_tibble <- read_excel(
 
 This section covers key concepts from [Chapter 9: Layers](https://r4ds.hadley.nz/layers.html), [Chapter 10: Exploratory Data Analysis](https://r4ds.hadley.nz/eda.html), [Chapter 11: Communication](https://r4ds.hadley.nz/communication.html), and [Chapter 20: Spreadsheets](https://r4ds.hadley.nz/spreadsheets.html) from [*R for Data Science (2e)*](https://r4ds.hadley.nz/) by Hadley Wickham, Mine Çetinkaya-Rundel, and Garrett Grolemund.
 
-You will learn about working with tabular data from Excel files using **[readxl](https://readxl.tidyverse.org/)** and **[ggplot2](https://ggplot2.tidyverse.org/)**. Key techniques include calendar heatmaps with `geom_tile()`, ordered factors for correct axis sorting, grouped summaries as the foundation for visualizations, boxplots, and scatter plots with annotated outliers.
+You will work with Excel files using **[readxl](https://readxl.tidyverse.org/)** and visualize the results with **[ggplot2](https://ggplot2.tidyverse.org/)**.
 
 We recommend using an agentic coding tool such as [Gemini CLI](https://github.com/google-gemini/gemini-cli) or [Claude Code](https://claude.ai/code), which can read and edit your files directly. Our instructions are written with these tools in mind. You may also use a chat-based AI, but you will need to copy/paste code and data context manually.
 
@@ -207,10 +207,10 @@ Your answer should look something like this, although your path will be differen
 In 2015, FiveThirtyEight published ["Some People Are Too Superstitious to Have a Baby on Friday the 13th"](https://fivethirtyeight.com/features/some-people-are-too-superstitious-to-have-a-baby-on-friday-the-13th/), which showed US births relative to average — adjusted for time trends, seasonality, and day of week — across the full calendar year.
 
 ```{r}
-knitr::include_graphics("images/us-births-heatmap.png")
+knitr::include_graphics("images/us-births-by-day-538.png")
 ```
 
-New Year's Day and Christmas show the deepest dips; even the 13th of each month is slightly lower than surrounding days. You will investigate this dataset and produce a version of this chart.
+The data comes from two US government sources compiled by FiveThirtyEight: CDC natality records covering 1994–1999 and Social Security Administration records covering 2000–2014, giving 7,670 daily observations in all. The US averages roughly 4 million births per year — about 11,000 per day — making this one of the most complete records of human birth timing available.
 
 ### Exercise 1
 
@@ -245,7 +245,7 @@ us_births_1994_2014.xlsx
 
 ###
 
-FiveThirtyEight published this data under a CC-BY license alongside their 2016 article. It combines two overlapping government sources: a CDC-derived file covering 1994–1999 and an Social Secutiry Admisintration (SSA) file covering 2000–2014; the combined spreadsheet uses the SSA data for the 2000–2003 overlap to avoid double-counting. Both sources use registration date rather than birth date, which introduces a small lag but does not materially affect the patterns you will analyze.
+FiveThirtyEight published this data under a CC-BY license; it combines CDC records (1994–1999) and SSA records (2000–2014), using the SSA data for the overlapping years to avoid double-counting. Both sources use registration date rather than birth date, which introduces a small lag but does not materially affect the patterns you will analyze.
 
 ### Exercise 2
 
@@ -269,7 +269,9 @@ question_text(NULL,
 glimpse(read_excel("../../extdata/r4ds-2/us_births_1994_2014.xlsx"))
 ```
 
-The dataset has 7,670 rows and five columns: `year`, `month`, `date_of_month`, `day_of_week`, and `births`. Each row is one calendar day. Notice that `day_of_week` arrives as `<chr>` — it uses FiveThirtyEight's abbreviated labels ("Mon", "Tues", "Wed", "Thurs", "Fri", "Sat", "Sun") rather than full names or numbers.
+###
+
+The dataset has 7,670 rows — one per calendar day — and five columns: `year`, `month`, `date_of_month`, `day_of_week`, and `births`. Notice that `day_of_week` arrives as `<chr>` using FiveThirtyEight's abbreviated labels ("Mon", "Tues", etc.) rather than numbers, which will require conversion before plotting.
 
 ### Exercise 3
 
@@ -295,9 +297,9 @@ read_excel("../../extdata/r4ds-2/us_births_1994_2014.xlsx") |>
   summary()
 ```
 
-The minimum birth count is around 5,700 — that single-day low belongs to December 25, 2011 (a Sunday). The maximum is about 16,000, near the September peak. The year range confirms the full 1994–2014 span is present.
+###
 
-Total US births also varied year to year across this span — annual daily averages peaked around 2006–2007 and dipped somewhat by the early 2010s, a swing of roughly 7%. That secular trend means raw counts on any given December 25 carry both a holiday signal and a year-level baseline shift mixed together.
+The minimum birth count is around 5,700 — that single-day low belongs to December 25, 2011 (a Sunday). The maximum is about 16,000, near the September peak.
 
 ### Exercise 4
 
@@ -327,13 +329,21 @@ question_text(NULL,
 glimpse(births_tibble)
 ```
 
-`day_of_week` is now `<ord>` — an ordered factor — rather than `<chr>`. Ordered factors tell **ggplot2** how to sequence a categorical variable on axes and in legends. Without the ordering, **ggplot2** would sort day names alphabetically ("Fri" before "Mon"), which is meaningless for a day-of-week axis.
+###
+
+`day_of_week` is now `<ord>` — an ordered factor — rather than `<chr>`. Without the ordering, **ggplot2** would sort day names alphabetically ("Fri" before "Mon"), which is meaningless for a day-of-week axis.
 
 ### Exercise 5
 
 Within the `births_tibble` code chunk, add `#| cache: true` as a chunk option. In a bash terminal, run `quarto render analysis.qmd`. This first render takes noticeably longer — Quarto runs the code and writes the cache to disk; subsequent renders skip that step and load from cache instead.
 
-In the R Terminal, run:
+After rendering, run in a bash terminal:
+
+```
+ls analysis_cache/
+```
+
+Then add `analysis_cache` to your `.gitignore` on a new line. In the R Terminal, run:
 
 ```
 show_file("analysis.qmd", chunk = "Last")
@@ -352,9 +362,7 @@ question_text(NULL,
 
 ###
 
-The `glimpse()` in Exercise 4 showed 7,670 rows across 21 years — 365 × 21 plus 5 leap days (1996, 2000, 2004, 2008, 2012) — which confirms no calendar days are missing from the data. `#| cache: true` is worth adding here because `read_excel()` parses a binary format on every render, which is slower than reading a plain-text CSV.
-
-<!-- AR: Add an exercise to add analysis_cache to the `.gitignore` -->
+`#| cache: true` tells Quarto to save the chunk's result to disk; the next render loads from cache instead of re-running `read_excel()`. The `analysis_cache/` directory belongs in `.gitignore` because its contents are auto-generated and large.
 
 ### Exercise 6
 
@@ -379,6 +387,8 @@ births_tibble |>
   group_by(month, date_of_month) |>
   summarize(mean_births = mean(births), .groups = "drop")
 ```
+
+###
 
 This summary collapses 7,670 daily observations into 366 cells (one per calendar position, including Feb 29). Each cell holds the mean births across all 21 years — except February 29, which appears only 5 times (the leap years 1996, 2000, 2004, 2008, and 2012).
 
@@ -426,9 +436,9 @@ births_tibble |>
   theme_minimal()
 ```
 
-`geom_tile()` maps a two-variable grid to color — it is a natural extension of `geom_col()` and `geom_point()` to a matrix layout. `scale_y_reverse()` flips the month axis so January appears at the top, matching the convention of a wall calendar. The September cluster is immediately visible as the darkest band; the holiday notches are unmistakable dark vertical cuts.
+###
 
-The overall color gradient from January/February (lightest) to late summer (darkest) encodes the seasonal birth wave — roughly 9% more births per day in September than in February. That gradient is the dominant signal in the heatmap; the holiday notches are sharp interruptions within it.
+The September band is the darkest — roughly 9% more births per day than in February, encoding the seasonal birth wave. The holiday notches are sharp vertical cuts within that wave: December 25, January 1, July 4, and Thanksgiving all show clear dips.
 
 ### Exercise 8
 
@@ -495,6 +505,8 @@ christmas_data |>
   select(year, christmas_births, baseline, pct_of_baseline, weekday)
 ```
 
+###
+
 The `weekday` column shows Christmas falling on a different day each year — Sunday in 1994, Monday in 1995, Wednesday in 1996. The `pct_of_baseline` moves noticeably from row to row, but the table alone does not reveal how much of that movement comes from the weekday, year-to-year differences in overall birth rates, or simply noise.
 
 ### Exercise 10
@@ -519,7 +531,9 @@ question_text(NULL,
 summary(christmas_data)
 ```
 
-The `pct_of_baseline` ranges from roughly 48% to 75% — a 27-point swing across just 21 Christmases, with a median around 64%. The `weekday` factor shows Christmas cycling through all seven days across the window. A 27-point spread is too large to attribute to noise alone; something systematic is driving the variation.
+###
+
+The `pct_of_baseline` ranges from roughly 48% to 75% — a 27-point swing across just 21 Christmases. That spread is too large to attribute to noise alone; something systematic is driving the variation.
 
 ### Exercise 11
 
@@ -560,6 +574,8 @@ christmas_data |>
   ) +
   theme_minimal()
 ```
+
+###
 
 There seems to be a general downward trend as well as an oscillating pattern. Two things vary year to year that could cause this: which weekday Christmas falls on, and the underlying level of US births — 2007 was a near-record birth year while 2011–2012 were noticeably lower.
 
@@ -605,6 +621,8 @@ christmas_data |>
   theme_minimal()
 ```
 
+###
+
 Sunday and Saturday years cluster near the bottom of every vertical slice; Tuesday and Wednesday years cluster near the top — the confound is the day of the week. Weekends already produce roughly 40% fewer births than weekdays from scheduled deliveries alone, so a Sunday Christmas compounds the holiday effect, while a Wednesday Christmas barely adds to it.
 
 ### Exercise 13
@@ -632,6 +650,8 @@ question_text(NULL,
 ```{r births-13-test}
 summary(births_model)$r.squared
 ```
+
+###
 
 The model's R² of roughly 0.87 means year, month, and weekday together explain about 87% of the day-to-day variation in US birth counts. The remaining 13% is what the three factors cannot account for — and that unexplained portion is what we want: it holds the holiday signal, isolated from season and schedule.
 
@@ -663,7 +683,9 @@ question_text(NULL,
 glimpse(births_adjusted)
 ```
 
-The `pct_resid` column holds each day's residual as a percentage of the overall mean — how many percentage points above or below the model's prediction for a day with that year, season, and weekday. Most ordinary days hover near zero. The largest negative values belong to major holidays: Christmas, New Year's Day, July 4, and Thanksgiving.
+###
+
+The `pct_resid` column holds each day's residual as a percentage of the overall mean — how many percentage points above or below the model's prediction for that year, season, and weekday. The largest negative values belong to major holidays: Christmas, New Year's Day, July 4, and Thanksgiving.
 
 ### Exercise 15
 
@@ -687,7 +709,9 @@ question_text(NULL,
 calendar_resid
 ```
 
-This collapses 7,670 daily residuals to 365 calendar positions. Each row shows how far the average birth count on that date deviates from what year, season, and weekday would predict. The December 25 row will show around −35 to −45, meaning Christmas averages roughly that many percentage points below the adjusted baseline. In contrast, typical September dates should show residuals near zero — the September peak is fully captured by the month predictor.
+###
+
+This collapses 7,670 daily residuals to 365 calendar positions, with each row showing how far that date's average deviates from the model's prediction. December 25 will be around −35 to −45; typical September dates should be near zero, since the seasonal peak is already captured by the month predictor.
 
 ### Exercise 16
 
@@ -733,15 +757,15 @@ calendar_resid |>
   theme_minimal()
 ```
 
+###
+
 Original FiveThirtyEight graphic for comparison:
 
 ```{r}
-knitr::include_graphics("images/us-births-heatmap.png")
+knitr::include_graphics("images/us-births-by-day-538.png")
 ```
 
-The pattern matches the FiveThirtyEight original: deep dips at Christmas, New Year's Day, and July 4; the rest of the year hovering near zero. After removing year, month, and weekday effects, the September peak disappears — it was entirely seasonal. What remains is the calendar of human decisions: the days families choose to avoid.
-
-FiveThirtyEight used a Bayesian smoothing model to achieve a similar decomposition; `lm()` produces a comparable result by a more direct route. The main practical difference is that their model uses prior information to smooth estimates for rare dates like Feb 29; ours averages the few observed values directly.
+The pattern matches the FiveThirtyEight original: deep dips at Christmas, New Year's Day, and July 4, with the rest of the year near zero. After removing year, month, and weekday effects, the September peak disappears entirely — what remains is the calendar of human decisions about when to schedule births.
 
 ### Exercise 17
 
@@ -806,7 +830,7 @@ nba_recruits.xlsx  us_births_1994_2014.xlsx
 
 ###
 
-The Pudding collected recruit rankings from 247Sports and career statistics from Basketball-Reference. The dataset covers draft classes from 1998 through approximately 2013 — players drafted more recently did not yet have enough career data to evaluate. Excel `.xlsx` files are binary, not plain text — your AI agent downloads them correctly, but the binary-versus-text distinction is the thing to carry away.
+The Pudding collected recruit rankings from 247Sports and career statistics from Basketball-Reference, covering draft classes from 1998 through approximately 2013. Players drafted more recently did not yet have enough career data to evaluate.
 
 ### Exercise 2
 
@@ -830,7 +854,9 @@ question_text(NULL,
 read_excel("../../extdata/r4ds-2/nba_recruits.xlsx")
 ```
 
-The first 10 rows are all `"#1–10"` recruits from the 1998 class — the data is ordered by recruit year and rank. `nba_mean_ws48` is Win Shares per 48 minutes, a measure of career productivity normalized for playing time. Even within this elite group it is already `NA` for several players: Korleone Young (rank 3), Ronald Curry (rank 6), and JaRon Rush (rank 7) never accumulated enough NBA minutes for career stats to register. Being the third-best high school recruit in the country was no guarantee of an NBA career.
+###
+
+The data is ordered by recruit year and rank; the first 10 rows are all `"#1–10"` recruits from 1998. Even within this elite group, `nba_mean_ws48` is already `NA` for several players — being a top-3 high school recruit was no guarantee of an NBA career.
 
 ### Exercise 3
 
@@ -854,7 +880,9 @@ question_text(NULL,
 read_excel("../../extdata/r4ds-2/nba_recruits.xlsx") |> glimpse()
 ```
 
-`recruit_group` and `tier` come in as `<chr>`. For plots, that means R will sort them alphabetically — `"#11–25"` before `"#1–10"`, `"All-Star level"` before `"Never played"`. Converting them to ordered factors is what tells R the correct sequence.
+###
+
+`recruit_group` and `tier` both arrive as `<chr>`, so R would sort them alphabetically — `"#11–25"` before `"#1–10"`, `"All-Star level"` before `"Never played"`. Both columns need to be converted to ordered factors before plotting.
 
 ### Exercise 4
 
@@ -880,7 +908,9 @@ read_excel("../../extdata/r4ds-2/nba_recruits.xlsx") |>
   summary()
 ```
 
-`nba_mean_ws48` has 1,504 NAs — 80% of all players never accumulated enough NBA minutes for career stats to register. `drafted` shows 1,255 FALSE versus 618 TRUE: most top-ranked high school players were never drafted at all. The 338 NAs in `rank` belong to the "Outside top 100" group — players The Pudding tracked who the ranking services never rated.
+###
+
+`nba_mean_ws48` has 1,504 NAs — 80% of players never accumulated enough NBA minutes for career stats. `drafted` shows 1,255 FALSE versus 618 TRUE, confirming that most top-ranked high school players were never drafted at all.
 
 ### Exercise 5
 
@@ -905,7 +935,9 @@ read_excel("../../extdata/r4ds-2/nba_recruits.xlsx") |>
   count(tier)
 ```
 
-More than half of all players in the dataset — roughly 1,000 of 1,873 — fall into "Never played," meaning the majority of even top-100 recruits never appeared in an NBA game. The next largest group is "Brief career," and true superstars are a small fraction. The categories sort alphabetically rather than by career progression because `tier` is still a plain character column.
+###
+
+More than half of all players — roughly 1,000 of 1,873 — fall into "Never played," meaning the majority of even top-100 recruits never appeared in an NBA game. The categories sort alphabetically rather than by career progression because `tier` is still a plain character column.
 
 ### Exercise 6
 
@@ -942,6 +974,8 @@ read_excel("../../extdata/r4ds-2/nba_recruits.xlsx") |>
   ) |>
   count(tier)
 ```
+
+###
 
 Compare this to the `count()` in Exercise 5: `tier` now runs from "Never played" to "Superstar" rather than alphabetically, matching the natural progression from worst to best career outcome. `recruit_group` is still a plain character column — without the same treatment it would sort as `"#11–25"` before `"#1–10"` in any plot.
 
@@ -985,7 +1019,9 @@ read_excel("../../extdata/r4ds-2/nba_recruits.xlsx") |>
   count(recruit_group)
 ```
 
-Each group spans a known rank range — `#1–10` through `#51–100` — so the expected counts are 160, 240, 400, and 800 players across 16 recruit years. Every group falls slightly short, and the gap grows with rank: `#1–10` is just 2 players short while `#51–100` is 37 short. Players ranked in the 80s and 90s were inconsistently listed across services, and the earliest classes (1998–2003) drew on older sources that sometimes published fewer than 100 names.
+###
+
+Each group falls slightly short of its expected count, and the gap grows with rank — `#1–10` is just 2 players short while `#51–100` is 37 short. Players ranked in the 80s and 90s were inconsistently listed across services, especially for the earliest classes (1998–2003).
 
 ### Exercise 8
 
@@ -1014,6 +1050,8 @@ question_text(NULL,
 ```{r basketball-8-test, echo = TRUE}
 glimpse(basketball_tibble)
 ```
+
+###
 
 Compare the column types here to the `glimpse()` in Exercise 3: `recruit_group` and `tier` are now `<fct>` instead of `<chr>`. `#| cache: true` saves the pipeline result to disk so subsequent renders skip re-reading and reprocessing the file.
 
@@ -1058,7 +1096,9 @@ basketball_tibble |>
   theme_minimal()
 ```
 
-Among the four ranked groups, the funnel is clear: the "Never played" segment shrinks steadily from "#51–100" to "#1–10," while the share of players with solid, All-Star, or superstar careers grows. The top-10 group has the largest proportion of meaningful NBA careers by a wide margin. `geom_bar(position = "fill")` rescales every bar to the same total height so proportions are directly comparable across groups regardless of how many players are in each.
+###
+
+The "Never played" segment shrinks steadily from "#51–100" to "#1–10," while the share with solid, All-Star, or superstar careers grows — the funnel is real. The top-10 group has the largest proportion of meaningful NBA careers by a wide margin.
 
 ### Exercise 10
 
@@ -1075,7 +1115,7 @@ question_text(NULL,
 
 ###
 
-The "Outside top 100" bar contains no "Never played" segment — which looks better than even the top-10 group. This is a sampling artifact: those players entered the dataset through the NBA draft, so by definition they all reached the NBA. The thousands of unranked high school players who were never drafted are simply absent, making the "Never played" denominator missing entirely for that group.
+The "Outside top 100" bar has almost no "Never played" segment — which looks better than the top-10 group. This is a sampling artifact: those players entered the dataset only through the NBA draft, so all unranked players who never got drafted are simply absent from the data.
 
 ### Exercise 11
 
@@ -1119,7 +1159,9 @@ basketball_tibble |>
   theme_minimal()
 ```
 
-With the "Outside top 100" group removed, the four bars represent comparable cohorts — every group includes players who made the NBA and players who did not. The funnel is now honest: "Never played" is highest in the "#51–100" group and falls steadily toward the "#1–10" group. Removing a group that lacks a key structural feature shared by the others is a routine step in exploratory analysis; leaving it in would have led to a misleading conclusion.
+###
+
+With the "Outside top 100" group removed, the four bars represent comparable cohorts — every group includes players who made the NBA and players who did not. "Never played" is now highest in "#51–100" and falls steadily toward "#1–10," making the funnel honest.
 
 ### Exercise 12
 
@@ -1163,7 +1205,9 @@ basketball_tibble |>
   theme_minimal()
 ```
 
-This plot filters to the 369 players with real career statistics — the 1,504 with missing `nba_mean_ws48` are excluded. The medians shift slightly across groups, but the boxes overlap almost completely. Among players who actually reached the NBA, recruit rank barely predicts how good they became.
+###
+
+The medians shift slightly across groups, but the boxes overlap almost completely — among players who actually reached the NBA, recruit rank barely predicts how good they became. This is the opposite of what the bar chart showed: rank matters a lot for getting in, and almost not at all for performance once there.
 
 ### Exercise 13
 
@@ -1180,9 +1224,11 @@ question_text(NULL,
 
 ###
 
-A higher high school rank improves your odds of an NBA career; it does not necessarilypredict whether you will be good once you get there.
+One possible answer: A higher high school rank improves your odds of reaching the NBA, but once there, recruit rank barely predicts career quality — the bar chart shows the funnel in, and the boxplot shows the flat distribution once inside.
 
-The bar chart and the boxplot answer different questions. The bar chart shows that rank strongly predicts whether a player reaches the NBA at all. The boxplot shows that among those who did make it, the spread within every recruit group is enormous and the medians barely differ. 
+###
+
+The bar chart and boxplot answer different questions. Rank strongly predicts whether a player reaches the NBA at all; among those who make it, the medians barely differ and the spread within every group is enormous.
 
 ### Exercise 14
 
@@ -1209,6 +1255,8 @@ basketball_tibble |>
   select(name, rank, recruit_group, nba_mean_ws48) |>
   head(10)
 ```
+
+###
 
 Stephen Curry (`rank` NA, "Outside top 100") and Damian Lillard (also "Outside top 100") appear in this table alongside players ranked first or second overall. The high school ranking services never evaluated either of them as top-100 prospects — yet both produced among the best career WS48 values in the dataset.
 
@@ -1273,7 +1321,9 @@ basketball_tibble |>
   theme_minimal()
 ```
 
-The trendline is nearly flat — the correlation between recruit rank and peak career performance among players who made the NBA is approximately −0.09. LeBron James (rank 1) anchors the top left as an outlier in both dimensions. Draymond Green (#95), Klay Thompson (#58), and Gilbert Arenas (#99) all appear at the top right with high peak Wins Added. Stephen Curry and Damian Lillard do not appear here at all because their `rank` is missing — this plot actually understates how flat the relationship is.
+###
+
+The trendline is nearly flat — LeBron James (rank 1) is the best player and the top recruit, but Draymond Green (#95), Klay Thompson (#58), and Gilbert Arenas (#99) also appear at the top of the chart. Stephen Curry and Damian Lillard don't appear at all because their `rank` is missing, which actually understates how flat the relationship is.
 
 ### Exercise 16
 
