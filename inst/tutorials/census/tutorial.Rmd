@@ -30,11 +30,20 @@ options(tutorial.exercise.timelimit = 600,
 # own analysis.qmd.
 
 data_path <- function(file) {
-  if (file.exists(file)) {
-    return(file)
+  input <- knitr::current_input(dir = TRUE)
+  candidates <- c(
+    file,
+    if (is.character(input)) file.path(dirname(input), file),
+    file.path("inst/tutorials/census", file)
+  )
+
+  for (candidate in candidates) {
+    if (file.exists(candidate)) {
+      return(candidate)
+    }
   }
 
-  file.path(dirname(knitr::current_input(dir = TRUE)), file)
+  file
 }
 
 # income_tx <- get_acs(geography = "county", variables = "B19013_001",
