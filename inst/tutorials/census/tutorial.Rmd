@@ -113,7 +113,7 @@ analysis_files
 
 ###
 
-The American Community Survey (ACS) is the Census Bureau's rolling annual survey of about 3.5 million households. Unlike the Decennial Census, which counts everyone every ten years, the ACS estimates characteristics like income, education, and age from a sample — which is why every value arrives with a margin of error.
+The American Community Survey (ACS) estimates characteristics like income, education, and age from a sample. That is why ACS values come with margins of error.
 
 ### Exercise 2
 
@@ -158,7 +158,7 @@ library(sf)</code></pre>
 
 ###
 
-**tidycensus** returns ACS data as a tidy data frame, one row per geography (or per geography-variable). If you also ask for the geographic boundaries, it hands you an **[sf](https://r-spatial.github.io/sf/)** object — a table with a spatial column attached — that **[ggplot2](https://ggplot2.tidyverse.org/)** can map directly. **sf** is the standard package for spatial data in R, and the boundaries themselves come from **[tigris](https://github.com/walkerke/tigris)**, which **tidycensus** uses under the hood.
+**tidycensus** returns tidy ACS tables. When you request geometry, it returns an **[sf](https://r-spatial.github.io/sf/)** object that **[ggplot2](https://ggplot2.tidyverse.org/)** can map directly.
 
 ### Exercise 3
 
@@ -170,8 +170,6 @@ In the R Terminal, run (with your own key in place of `"YOUR-KEY-HERE"`):
 tidycensus::census_api_key("YOUR-KEY-HERE", install = TRUE)
 ```
 
-<!-- AR: Look at the .Renviron file in exercise 4. CP/CR but delete the key. Never share your API keys publicly. KD: WARNING, doesn't set key for all CODESPACEs-->
-
 This stores the key in your `.Renviron` file so every future R session finds it automatically. In the bash Terminal, run:
 
 ```
@@ -179,8 +177,6 @@ cat ~/.Renviron
 ```
 
 You should see a line that starts with `CENSUS_API_KEY=`. Do not paste that output anywhere, because it contains your key.
-
-<!-- AR: Check if resetting R session is needed. Test in codespaces. Below should end exercise 3. -->
 
 Restart your R session.
 
@@ -207,8 +203,7 @@ question_text(NULL,
 
 ###
 
-The key is tied to your email, not a Census account — there is no login to manage. Because `install = TRUE` writes it to `.Renviron` rather than `analysis.qmd`, it never appears in your code or your commits, and every `get_acs()` call in this tutorial picks it up automatically from here on.
-
+The key lives in `.Renviron`, not in `analysis.qmd`. That keeps it out of your code and commits.
 
 ## Texas income
 ###
@@ -216,8 +211,6 @@ The key is tied to your email, not a Census account — there is no login to man
 Median household income is one of the most-requested ACS variables. Its code is `B19013_001`. In this section you will map it across all 254 Texas counties.
 
 ### Exercise 1
-
-<!-- AR: Split into 3 exercises. 1. Run get acs. Vomits out data frame. 2. save to a variable. 3. Add message: false -->
 
 Add a chunk to `analysis.qmd` that uses **tidycensus** to get 2020 median household income for every county in Texas, with county geometry attached for mapping, and saves it as `income_tx`. Add `#| message: false` to the chunk to hide the connection messages. Render.
 
@@ -252,9 +245,7 @@ income_tx <- get_acs(
 
 ###
 
-<!-- AR: Prompt Codex to make all KDs a max of 2 sentences. -->
-
-Every ACS request comes down to three choices: the **geographic level** (county here, but census tract, place, or state are equally available), the **variables** — Census table codes like `B19013_001` for median household income — and the **year**, which for the ACS names a 5-year window (2020 means the 2016–2020 estimates, pooled across five years so even small counties have reliable numbers). The first render makes a real network call to the Census API, so it takes a moment — and draws on the key you installed in the Introduction, which every `get_acs()` call in this tutorial uses automatically.
+Every ACS request needs a geography, variables, and a year. For ACS data, `year = 2020` means the pooled 2016-2020 5-year estimates.
 
 ### Exercise 2
 
@@ -278,7 +269,7 @@ income_tx
 
 ###
 
-Every county arrives with a `GEOID` (its FIPS code), a `NAME`, the `variable` code, an `estimate`, and a margin of error (`moe`). The `estimate` is the survey's best guess; the `moe` is the half-width of its 90% confidence interval. Because the ACS is a *sample*, not a full count, every estimate carries a margin — and that margin is smaller in populous counties, where the survey reaches more households. Because you asked for boundaries, there is also a spatial column holding each county's polygon.
+Every row has an `estimate` and a margin of error (`moe`). Because you asked for boundaries, it also has a geometry column for the county polygon.
 
 ### Exercise 3
 
@@ -310,7 +301,7 @@ glimpse(income_tx)
 
 ###
 
-This is a good place for `glimpse()` because the table is narrow. The `geometry` column is the giveaway that `income_tx` is an **sf** object: it is still a table, but each row also carries the polygon needed to draw that county on a map.
+The `geometry` column is the giveaway that `income_tx` is an **sf** object. It is still a table, but each row carries a county polygon.
 
 ### Exercise 4
 
@@ -349,7 +340,7 @@ income_tx |>
 
 ###
 
-The income spread is large enough that a map should be interesting: Texas counties are not all clustered around one value. Dropping the geometry before a numeric summary is a useful habit when the geometry is not part of the calculation.
+The income spread is wide enough that a map should be interesting. Drop geometry when the calculation is purely tabular.
 
 ### Exercise 5
 
@@ -390,11 +381,9 @@ ggplot(income_tx, aes(x = estimate)) +
 
 ###
 
-The histogram shows the distribution but not the geography. A few high-income counties sit well above most of the state, and the next question is whether those counties are scattered randomly or clustered around particular metro areas.
+The histogram shows the spread, but not where the counties are. The map will show whether high-income counties cluster geographically.
 
 ### Exercise 6
-
-<!-- AR: Does this instruction work as a prompt? -->
 
 Replace the histogram with a choropleth map of median income across the counties using **ggplot2**. Render and check the map in your Live Server tab.
 
@@ -417,8 +406,6 @@ question_text(NULL,
 
 ###
 
-<!-- AR: Is this a chloropleth? Needs axis labels, titles, subtitles etc... -->
-
 ```{r texas-income-6-test}
 #| echo: true
 #| message: false
@@ -435,7 +422,7 @@ ggplot(income_tx) +
 
 ###
 
-This is a **choropleth** — each county drawn from its boundary and shaded by its income. Two things make this first version hard to read: the default blue gradient runs dark-to-light in a direction many readers misjudge, and the gray panel with latitude/longitude gridlines adds clutter a map does not need. Fixing both is the next step.
+This is a **choropleth**: each county is shaded by a value. The first version works, but the default colors and gridlines add clutter.
 
 ### Exercise 7
 
@@ -478,7 +465,7 @@ ggplot(income_tx) +
 
 ###
 
-The **viridis** color scales are designed to be perceptually uniform and readable by colorblind viewers, which is why they have become a default for choropleths; **ggplot2** ships them, and the **[RColorBrewer](https://colorbrewer2.org/)** palettes are the other common choice. Clearing away the gray panel and the latitude/longitude gridlines a map does not need leaves the counties to carry the message. Reading the finished map, the highest incomes cluster in the suburban counties around the big metros — Austin, Dallas–Fort Worth, and Houston — while many rural counties, especially along the Rio Grande border in the south, carry the lowest median incomes. A published choropleth earns its place by making that pattern legible at a glance: the map tells the reader *where*, and the title and caption tell them *what to take away* and what the numbers can support.
+The finished map makes the metro-suburban pattern visible at a glance. A choropleth is strongest when the geography carries the message.
 
 ### Exercise 8
 
@@ -497,7 +484,7 @@ question_text(NULL,
 
 ###
 
-A choropleth shades each area by a value, so it is only as honest as the variable behind it. Median household income is a good fit because it is roughly comparable across counties; a raw count like "number of high earners" would mostly track county population and mislead.
+Median household income is a good choropleth variable because it is comparable across counties. Raw counts often just map population.
 
 ## Education by state
 ###
@@ -539,7 +526,7 @@ edu_state <- get_acs(
 
 ###
 
-These five variable codes report *completed* degrees, not enrollment. `B15003_022` through `B15003_025` are bachelor's, master's, professional, and doctorate degrees — four separate, non-overlapping levels — so adding them counts everyone with at least a bachelor's. Asking for the table total (`B15003_001`) to ride along on every row gives you the denominator you need to turn those counts into a percentage.
+These codes report completed degrees, not enrollment. Adding bachelor's, master's, professional, and doctorate counts gives the numerator for "at least a bachelor's."
 
 ### Exercise 2
 
@@ -571,9 +558,7 @@ edu_state
 
 ###
 
-The result is **long**: each state-level geography appears once for each requested variable. With 52 geographies and five variables, `edu_state` has 260 rows. **tidycensus** includes the 50 states, the District of Columbia, and Puerto Rico when you request `geography = "state"`.
-
-<!-- AR: In a new code chunk run edu-state to look at it. -->
+The result is **long**: each geography appears once per requested variable. Here that means 52 geographies times five variables, or 260 rows.
 
 ### Exercise 3
 
@@ -605,7 +590,7 @@ glimpse(edu_state)
 
 ###
 
-This is a good place for `glimpse()` because the table is narrow. The important columns are `estimate`, the count for one education level, and `summary_est`, the repeated total adult population for that geography. The margin-of-error columns remind you that ACS values are estimates, even when the table looks like ordinary counts.
+The important columns are `estimate`, the count for one education level, and `summary_est`, the repeated adult total. The margin-of-error columns remind you these are ACS estimates.
 
 ### Exercise 4
 
@@ -643,7 +628,7 @@ edu_state |>
 
 ###
 
-Each variable has 52 rows, one for each state-level geography. The total adult population is much larger than any one degree category, which is the clue that raw counts are not the final measure: California will dominate raw counts because it has so many adults, not necessarily because it has the highest share with degrees.
+Each variable has 52 rows, one per state-level geography. Raw counts would mostly reward large populations, so the final comparison needs percentages.
 
 ### Exercise 5
 
@@ -674,7 +659,7 @@ edu_state <- get_acs(
 
 ###
 
-A chunk ready to cache should contain only the artifact it builds. The exploratory chunk did its job: it helped you understand `edu_state`, but it does not need to remain in the finished QMD.
+A cached chunk should contain only the artifact it builds. The exploratory chunk helped you understand the data, but it does not need to stay.
 
 ### Exercise 6
 
@@ -696,7 +681,7 @@ question_text(NULL,
 
 ###
 
-Caching is for finished, expensive chunks — a network request like this one, not code you are still editing. The cache is generated output: useful locally, but not something to publish to GitHub.
+Caching belongs on finished, expensive chunks. The cache is useful locally, but it is generated output.
 
 ### Exercise 7
 
@@ -721,7 +706,7 @@ analysis_cache
 
 ###
 
-The Source Control change count should drop back to whatever it was before the render. This is the same discipline as ignoring `analysis_files`: generated output can help your local workflow without becoming part of the source project.
+The Source Control count should drop after `.gitignore` catches the cache. Generated output can help locally without becoming source code.
 
 ### Exercise 8
 
@@ -759,7 +744,7 @@ edu_state |>
 
 ###
 
-The District of Columbia sits far above the states because it is a city-like jurisdiction with a highly educated labor market, not a large mixed urban-rural state. That is not a mistake, but it is a reminder to read geographies carefully before comparing them.
+The District of Columbia sits far above the states because it is a city-like jurisdiction. Always read the geography before comparing places.
 
 ### Exercise 9
 
@@ -797,7 +782,7 @@ edu_state |>
 
 ###
 
-The middle state-level geography is around 31%, while the minimum is about 21% and the maximum is about 60%. A summary gives the range, but a plot makes the shape of the distribution easier to judge.
+The middle geography is around 31%, with a much higher maximum. A plot makes that shape easier to judge than a summary.
 
 ### Exercise 10
 
@@ -844,7 +829,7 @@ edu_state |>
 
 ###
 
-The histogram shows that most state-level geographies cluster in a fairly narrow middle range, with the District of Columbia far to the right. To identify every place, not just the distribution, the next plot needs to rank the geographies by name.
+Most geographies cluster in the middle, with DC far to the right. A ranked chart will identify every place by name.
 
 ### Exercise 11
 
@@ -889,7 +874,7 @@ edu_state |>
 
 ###
 
-Ordering the bars turns the distribution into a comparison. The rough chart shows the main ranking immediately, but it still needs labels, a readable percent scale, and a source note before it is worth publishing.
+Ordering the bars turns the distribution into a comparison. The rough chart has the ranking; the final chart needs polish.
 
 ### Exercise 12
 
@@ -938,7 +923,7 @@ edu_state |>
 
 ###
 
-The finished chart shows a regional and institutional pattern that a table makes hard to scan: the highest values cluster in the District of Columbia and several Northeastern or knowledge-economy states, while the lowest values are concentrated in parts of Appalachia and the South. Because this is a percentage of adults 25 and over, the comparison is not just a population-size ranking.
+The final chart is a percentage comparison, not a population-size ranking. DC and several Northeastern states sit well above most places.
 
 ### Exercise 13
 
@@ -957,7 +942,7 @@ question_text(NULL,
 
 ###
 
-This section used the same table as a county-level education map would use, but changed the geography to states and territories. That is one of **tidycensus**'s central ideas: the variables define what you measure, and the geography defines the units you compare.
+The variables define what you measure. The geography defines the units you compare.
 
 ## California median age
 ###
@@ -999,7 +984,7 @@ age_ca <- get_acs(
 
 ###
 
-You can give each variable a readable name — `median_age`, `population` — instead of carrying raw codes like `B01002_001` around, which makes everything downstream easier to read. And because this section does not draw boundaries, skipping the geometry download is the right call — there is no reason to pull polygons you will not use.
+Readable variable names make the rest of the code easier to audit. Since this section does not map counties, `geometry = FALSE` avoids downloading polygons.
 
 ### Exercise 2
 
@@ -1031,11 +1016,9 @@ age_ca
 
 ###
 
-Again the data is **long**: each county has two rows, one for `median_age` and one for `population`. That shape is natural for the Census API response, but not for a scatterplot comparing the two measures.
+Again the data is **long**: each county has one row per variable. A scatterplot needs those variables side by side.
 
 ### Exercise 3
-
-<!-- AR: explicit glimpse -->
 
 Replace the working chunk with code that shows the structure of `age_ca`. Render.
 
@@ -1065,7 +1048,7 @@ glimpse(age_ca)
 
 ###
 
-The table is narrow enough that `glimpse()` is useful. The `variable` column tells you which measure a row holds, while `estimate` holds the value. To compare median age with population, those two variable values need to become two columns.
+The `variable` column tells you which measure a row holds. The `estimate` column holds the value.
 
 ### Exercise 4
 
@@ -1103,11 +1086,9 @@ age_ca |>
 
 ###
 
-Each variable has 58 rows, one for each California county. The two variables are on very different scales: population ranges from tiny Alpine County to Los Angeles County, while median age varies by a few decades. A scatterplot can show both scales at once.
+Each variable has 58 rows, one per California county. Population varies much more than median age.
 
 ### Exercise 5
-
-<!-- AR: Flow is muddled here. Run through the tutorial by hand and fix. -->
 
 Replace the working chunk with code that reshapes `age_ca` to one row per county, with one column for `median_age` and one for `population`. Print the table sorted from largest to smallest population. Render.
 
@@ -1140,7 +1121,7 @@ age_ca |>
 
 ###
 
-**Reshaping** turns repeated variable/value rows into one column per variable. That wide shape is what most plots and models expect: one row per county, with `median_age` and `population` available side by side.
+**Reshaping** turns repeated variable/value rows into one column per variable. That gives you one row per county.
 
 ### Exercise 6
 
@@ -1184,7 +1165,7 @@ age_ca |>
 
 ###
 
-The histogram shows that most counties sit in the mid-30s to mid-40s, with a few much older counties. It still does not tell whether those older counties are large population centers or smaller rural counties.
+Most counties sit in the mid-30s to mid-40s. The next question is whether older counties are large or small.
 
 ### Exercise 7
 
@@ -1227,7 +1208,7 @@ age_ca |>
 
 ###
 
-The rough scatterplot has the right variables, but the population axis is hard to read because Los Angeles County is so much larger than most counties. A log scale is a better fit when one variable spans several orders of magnitude.
+The rough scatterplot has the right variables, but population is too skewed for a linear scale. A log scale gives smaller counties room to breathe.
 
 ### Exercise 8
 
@@ -1278,7 +1259,7 @@ age_ca |>
 
 ###
 
-The final plot shows a negative relationship: California's largest counties are mostly in the 30s, while many of the oldest counties are small. The log scale keeps Los Angeles County visible without flattening every smaller county into the left edge of the chart.
+The final plot shows a negative relationship: many of the oldest counties are small. The log scale keeps Los Angeles visible without crushing the smaller counties.
 
 ### Exercise 9
 
@@ -1297,12 +1278,12 @@ question_text(NULL,
 
 ###
 
-Median age is itself an ACS estimate with a margin of error, just like income. For large counties the margin is tiny, but for the smallest counties a difference of a year or two between counties may be inside the margin and not real.
+Median age is an ACS estimate too. For small counties, a one- or two-year difference may be inside the margin of error.
 
 ## Summary
 ###
 
-This tutorial followed the **tidycensus** chapters of [Analyzing US Census Data](https://walker-data.com/census-r/) by Kyle Walker. You pulled American Community Survey data through the Census API with **tidycensus**, learned how ACS estimates carry margins of error, reshaped long-format results into the wide shape that plotting needs, and built three published artifacts: a choropleth map of Texas household income, a ranked chart of state educational attainment, and a scatterplot of California county population and median age.
+This tutorial followed the **tidycensus** chapters of [Analyzing US Census Data](https://walker-data.com/census-r/) by Kyle Walker. You built a Texas income map, a state education ranking, and a California age-population scatterplot.
 
 ### Exercise 1
 
@@ -1434,7 +1415,7 @@ age_ca |>
 
 ###
 
-**tidycensus** accepts a state as a name (`"Texas"`), a postal code (`"TX"`), or a FIPS code (`"48"`), and will aggregate to whatever geographic level you ask for — county here, but also census tract, place, or state. The same request scales from a single county map to a national tract-level analysis without changing the approach.
+**tidycensus** accepts state names, postal codes, and FIPS codes. Changing the geography changes the units, not the basic workflow.
 
 ### Exercise 2
 
@@ -1457,7 +1438,7 @@ question_text(NULL,
 
 ###
 
-Publishing turns your `analysis.qmd` into a public page anyone can view — the same way most real Census analyses reach their audience.
+Publishing turns your local analysis into a public page. That is how many real Census analyses reach readers.
 
 ### Exercise 3
 
@@ -1474,7 +1455,7 @@ question_text(NULL,
 
 ###
 
-The workflow you used here — **tidycensus** to pull ACS data (with boundaries when you want a map), **sf** to hold the geometry, and **ggplot2** to draw it — is the standard modern approach to US Census analysis. From here, Walker's book goes on to time-series comparisons, spatial statistics, and modeling, all built on the same foundation.
+The workflow here is the modern Census stack: **tidycensus** for ACS data, **sf** for geometry, and **ggplot2** for display. Walker's book builds time-series comparisons, spatial statistics, and modeling on the same foundation.
 
 ```{r download-answers, child = system.file("child_documents/download_answers.Rmd", package = "tutorial.helpers")}
 ```
