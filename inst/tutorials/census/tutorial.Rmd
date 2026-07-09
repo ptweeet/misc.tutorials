@@ -29,22 +29,30 @@ options(tutorial.exercise.timelimit = 600,
 # renders without hitting the Census API. Students make the live calls in their
 # own analysis.qmd.
 
+data_path <- function(file) {
+  if (file.exists(file)) {
+    return(file)
+  }
+
+  file.path(dirname(knitr::current_input(dir = TRUE)), file)
+}
+
 # income_tx <- get_acs(geography = "county", variables = "B19013_001",
 # state = "TX", year = 2020, geometry = TRUE)
 # write_rds(income_tx, "data/income_tx.rds")
-income_tx <- read_rds("data/income_tx.rds")
+income_tx <- read_rds(data_path("data/income_tx.rds"))
 
 # edu_state <- get_acs(geography = "state",
 # variables = c("B15003_001", "B15003_022", "B15003_023", "B15003_024", "B15003_025"),
 # year = 2020, geometry = FALSE, summary_var = "B15003_001")
 # write_rds(edu_state, "data/edu_state.rds")
-edu_state <- read_rds("data/edu_state.rds")
+edu_state <- read_rds(data_path("data/edu_state.rds"))
 
 # age_ca <- get_acs(geography = "county",
 # variables = c(median_age = "B01002_001", population = "B01003_001"),
 # state = "CA", year = 2020, geometry = FALSE)
 # write_rds(age_ca, "data/age_ca.rds")
-age_ca <- read_rds("data/age_ca.rds")
+age_ca <- read_rds(data_path("data/age_ca.rds"))
 ```
 
 ```{r info-section, child = system.file("child_documents/info_section.Rmd", package = "tutorial.helpers")}
