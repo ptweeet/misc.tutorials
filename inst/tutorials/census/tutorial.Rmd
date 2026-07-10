@@ -170,6 +170,8 @@ In the R Terminal, run (with your own key in place of `"YOUR-KEY-HERE"`):
 tidycensus::census_api_key("YOUR-KEY-HERE", install = TRUE)
 ```
 
+<!-- AR: Look at the .Renviron file in exercise 4. CP/CR but delete the key. Never share your API keys publicly. KD: WARNING, doesn't set key for all CODESPACEs-->
+
 This stores the key in your `.Renviron` file so every future R session finds it automatically. In the bash Terminal, run:
 
 ```
@@ -177,6 +179,8 @@ cat ~/.Renviron
 ```
 
 You should see a line that starts with `CENSUS_API_KEY=`. Do not paste that output anywhere, because it contains your key.
+
+<!-- AR: Check if resetting R session is needed. Test in codespaces. Below should end exercise 3. -->
 
 Restart your R session.
 
@@ -212,6 +216,8 @@ Median household income is one of the most-requested ACS variables. Its code is 
 
 ### Exercise 1
 
+<!-- AR: Split into 3 exercises. 1. Run get acs. Vomits out data frame. 2. save to a variable. 3. Add message: false -->
+
 Add a chunk to `analysis.qmd` that uses **tidycensus** to get 2020 median household income for every county in Texas, with county geometry attached for mapping, and saves it as `income_tx`. Add `#| message: false` to the chunk to hide the connection messages. Render.
 
 In the R Terminal, run:
@@ -244,6 +250,8 @@ income_tx <- get_acs(
 </code></pre>
 
 ###
+
+<!-- AR: Prompt Codex to make all KDs a max of 2 sentences. -->
 
 Every ACS request needs a geography, variables, and a year. For ACS data, `year = 2020` means the pooled 2016-2020 5-year estimates.
 
@@ -385,6 +393,8 @@ The histogram shows the spread, but not where the counties are. The map will sho
 
 ### Exercise 6
 
+<!-- AR: Does this instruction work as a prompt? -->
+
 Replace the histogram with a choropleth map of median income across the counties using **ggplot2**. Render and check the map in your Live Server tab.
 
 In the R Terminal, run:
@@ -405,6 +415,8 @@ question_text(NULL,
 ```
 
 ###
+
+<!-- AR: Is this a chloropleth? Needs axis labels, titles, subtitles etc... -->
 
 ```{r texas-income-6-test}
 #| echo: true
@@ -559,6 +571,8 @@ edu_state
 ###
 
 The result is **long**: each geography appears once per requested variable. Here that means 52 geographies times five variables, or 260 rows.
+
+<!-- AR: In a new code chunk run edu-state to look at it. -->
 
 ### Exercise 3
 
@@ -1020,6 +1034,8 @@ Again the data is **long**: each county has one row per variable. A scatterplot 
 
 ### Exercise 3
 
+<!-- AR: explicit glimpse -->
+
 Replace the working chunk with code that shows the structure of `age_ca`. Render.
 
 In the R Terminal, run:
@@ -1089,6 +1105,8 @@ age_ca |>
 Each variable has 58 rows, one per California county. Population varies much more than median age.
 
 ### Exercise 5
+
+<!-- AR: Flow is muddled here. Run through the tutorial by hand and fix. -->
 
 Replace the working chunk with code that reshapes `age_ca` to one row per county, with one column for `median_age` and one for `population`. Print the table sorted from largest to smallest population. Render.
 
